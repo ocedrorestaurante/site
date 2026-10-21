@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reservas · O Cedro</title>
+<meta name="description" content="Reserve sua mesa no O Cedro, Votuporanga.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="wrap phone">
+  <div class="card form" id="formCard">
+    <div><div class="brand">O Cedro</div><div class="demo">Reserva de mesa · jantar a partir das 19h · terça a sábado</div></div>
+    <label for="cDate">Data<select id="cDate"></select></label>
+    <div><div class="lbl">Quantas pessoas?</div><div class="pills" id="cPeople"></div></div>
+    <div><div class="lbl">Horário de chegada</div><div class="pills" id="cTime"></div></div>
+    <label for="cArea">Onde prefere?<select id="cArea"><option value="salao">Salão interno</option><option value="deck">Deck (área externa)</option></select></label>
+    <div class="row">
+      <label for="cName">Nome<input id="cName" autocomplete="name" placeholder="Seu nome"></label>
+      <label for="cPhone">WhatsApp<input id="cPhone" inputmode="tel" autocomplete="tel" placeholder="(17) 9...."></label>
+    </div>
+    <label for="cObs">Observação (opcional)<input id="cObs" placeholder="Aniversário, cadeirinha..."></label>
+    <div id="cMsg"></div>
+    <button class="primary" id="cSend">Reservar</button>
+    <p class="hint">A mesa fica reservada até as 20h.</p>
+    <p class="hint" style="margin:0">Seu nome e WhatsApp são usados só para esta reserva e para falarmos com você sobre ela. Não compartilhamos com ninguém. Para apagar seus dados, é só pedir pelo WhatsApp do O Cedro.</p>
+  </div>
+
+  <div class="card" style="display:grid;gap:10px">
+    <div><div class="brand" style="font-size:18px">Quer fazer um evento no O Cedro?</div><div class="demo">Aniversário, confraternização, jantar de empresa… Deixe seu contato que a Ana Carolina fala com você.</div></div>
+    <button id="evOpen">Pedir contato para evento</button>
+    <div class="form" id="evForm" hidden>
+      <div class="row"><label for="evName">Nome<input id="evName" autocomplete="name"></label><label for="evPhone">WhatsApp<input id="evPhone" inputmode="tel" autocomplete="tel"></label></div>
+      <div class="row"><label for="evDate">Data pensada<input id="evDate" type="date"></label><label for="evPeople">Pessoas (aprox.)<input id="evPeople" inputmode="numeric" placeholder="Ex.: 30"></label></div>
+      <label for="evType">Tipo de evento<select id="evType"><option>Aniversário</option><option>Confraternização</option><option>Evento de empresa</option><option>Casamento / noivado</option><option>Outro</option></select></label>
+      <label for="evObs">Conte um pouco (opcional)<input id="evObs" placeholder="Ideia, horário, cardápio..."></label>
+      <div id="evMsg"></div>
+      <button class="primary" id="evSend">Enviar pedido</button>
+      <p class="hint" style="margin:0">Usamos seus dados só para responder sobre o evento.</p>
+    </div>
+  </div>
+  <p class="hint" style="text-align:center"><a href="/">restauranteocedro.com.br</a></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<script>
+const sb=supabase.createClient(CFG.url,CFG.key);
+const $=id=>document.getElementById(id);
+const TIMES=["19:00","19:15","19:30","19:45"];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function spDate(off){const d=new Date(Date.now()+off*864e5);return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo"}).format(d);}
+function label(iso,i){const [y,m,d]=iso.split("-").map(Number);const dt=new Date(Date.UTC(y,m-1,d,12));const s=dt.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit",timeZone:"UTC"});return i===0?"Hoje, "+s:i===1?"Amanhã, "+s:s;}
+function wppBtn(txt){return `<a class="wbtn" style="margin-top:8px" href="https://wa.me/${CFG.wppNum}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Chamar no WhatsApp</a><div class="hint" style="text-align:center">ou mande mensagem para <strong style="user-select:all">${CFG.wpp}</strong></div>`;}
+
+let cPeople=2,cTime="19:30",avail=null;
+// Dias abertos vêm do banco (padrão terça a sábado + exceções do painel)
+const openDay=iso=>{const [y,m,d]=iso.split("-").map(Number);const w=new Date(Date.UTC(y,m-1,d)).getUTCDay();return w>=2&&w<=6;};
+async function buildDates(){
+  const all=[...Array(14)].map((_,i)=>spDate(i));
+  const {data,error}=await sb.rpc("dias_abertos",{p_de:all[0],p_ate:all[13]});
+  const open=new Set(error?all.filter(openDay):data);
+  const days=all.map((d,i)=>[d,i]).filter(([d])=>open.has(d));
+  $("cDate").innerHTML=days.map(([d,i])=>`<option value="${d}">${label(d,i)}</option>`).join("")+`<option value="later">Outra data (daqui a mais de 2 semanas)</option>`;
+}
+$("cPeople").innerHTML=[1,2,3,4,5,6,"7+"].map(n=>`<button type="button" data-n="${n}" class="${n===cPeople?"on":""}">${n}</button>`).join("");
+$("cTime").innerHTML=TIMES.map(t=>`<button type="button" data-t="${t}" class="${t===cTime?"on":""}">${t}</button>`).join("");
+
+async function refresh(){
+  const day=$("cDate").value,msg=$("cMsg"),dtxt=$("cDate").selectedOptions[0].textContent;
+  if(day==="later"){msg.innerHTML=`<div class="msg">Para datas daqui a mais de 2 semanas, fale com a gente pelo WhatsApp.${wppBtn(`Olá! Quero fazer uma reserva no O Cedro para uma data mais à frente.${cPeople!=="7+"?`\nPessoas: ${cPeople}`:""}\nData: `)}</div>`;$("cSend").disabled=true;return;}
+  if(cPeople==="7+"){msg.innerHTML=`<div class="msg">Para grupos maiores, chame a gente no WhatsApp que montamos a mesa para você.${wppBtn(`Olá! Quero reservar no O Cedro para um grupo.\nData: ${dtxt}\nPessoas: `)}</div>`;$("cSend").disabled=true;return;}
+  $("cSend").disabled=true;
+  const {data,error}=await sb.rpc("disponibilidade",{p_dia:day});
+  if(day!==$("cDate").value)return;
+  avail=error?null:data;
+  const deckOpt=$("cArea").querySelector('option[value="deck"]');
+  deckOpt.disabled=!!avail&&!avail.aberto; if(deckOpt.disabled&&$("cArea").value==="deck")$("cArea").value="salao";
+  if(avail&&!avail.aberto){msg.innerHTML=`<div class="msg bad">Reservas online esgotadas para essa noite. Fale com a gente pelo WhatsApp.${wppBtn(`Olá! Vi que as reservas online estão esgotadas. Ainda tem lugar?\nData: ${dtxt}\nPessoas: ${cPeople}`)}</div>`;return;}
+  msg.innerHTML="";$("cSend").disabled=false;
+}
+$("cPeople").onclick=e=>{const b=e.target.closest("button");if(!b)return;cPeople=b.dataset.n==="7+"?"7+":+b.dataset.n;[...$("cPeople").children].forEach(x=>x.classList.toggle("on",x===b));refresh();};
+$("cTime").onclick=e=>{const b=e.target.closest("button");if(!b)return;cTime=b.dataset.t;[...$("cTime").children].forEach(x=>x.classList.toggle("on",x===b));};
+$("cDate").onchange=refresh;
+$("cSend").onclick=async()=>{
+  const name=$("cName").value.trim(),phone=$("cPhone").value.trim(),area=$("cArea").value,day=$("cDate").value;
+  if(!name||phone.replace(/\D/g,"").length<10){$("cMsg").innerHTML=`<div class="msg bad">Preencha nome e WhatsApp com DDD.</div>`;return;}
+  $("cSend").disabled=true;$("cSend").textContent="Enviando…";
+  const {data,error}=await sb.rpc("criar_reserva",{p_dia:day,p_nome:name,p_telefone:phone,p_pessoas:cPeople,p_horario:cTime,p_area:area,p_obs:$("cObs").value.trim()||null});
+  $("cSend").textContent="Reservar";
+  if(error||!data?.ok){$("cMsg").innerHTML=`<div class="msg bad">${esc(data?.msg||"Não conseguimos registrar agora. Tente de novo ou fale pelo WhatsApp.")}</div>`;$("cSend").disabled=false;return;}
+  const dtxt=$("cDate").selectedOptions[0].textContent;
+  $("cMsg").innerHTML=`<div class="msg ok"><strong>Reserva recebida!</strong><br>${esc(name)}, ${cPeople} pessoa(s), ${dtxt}, ${cTime}, ${area==="deck"?"deck":"salão"}.<br>A mesa fica reservada até as 20h. Você vai receber a confirmação pelo WhatsApp do O Cedro.</div>`;
+  $("cName").value=$("cPhone").value=$("cObs").value="";
+  setTimeout(()=>{$("cSend").disabled=false;},1500);
+};
+
+$("evOpen").onclick=()=>{$("evForm").hidden=false;$("evOpen").hidden=true;$("evName").focus();};
+$("evSend").onclick=async()=>{
+  const name=$("evName").value.trim(),phone=$("evPhone").value.trim();
+  const ppl=parseInt(($("evPeople").value.match(/\d+/)||[])[0],10);
+  if(!name||phone.replace(/\D/g,"").length<10){$("evMsg").innerHTML=`<div class="msg bad">Preencha nome e WhatsApp com DDD para a gente falar com você.</div>`;return;}
+  if(!ppl){$("evMsg").innerHTML=`<div class="msg bad">Informe quantas pessoas, mais ou menos.</div>`;return;}
+  const ev={p_nome:name,p_telefone:phone,p_data:$("evDate").value||null,p_pessoas:ppl,p_tipo:$("evType").value,p_obs:$("evObs").value.trim()||null};
+  $("evSend").disabled=true;
+  const {data,error}=await sb.rpc("pedir_evento",ev);
+  $("evSend").disabled=false;
+  if(error||!data?.ok){$("evMsg").innerHTML=`<div class="msg bad">${esc(data?.msg||"Não conseguimos enviar agora. Tente de novo.")}</div>`;return;}
+  const txt=`Olá! Quero fazer um evento no O Cedro.\nNome: ${name}\nTipo: ${ev.p_tipo}${ev.p_data?`\nData: ${ev.p_data.split("-").reverse().join("/")}`:""}\nPessoas: ${ppl}${ev.p_obs?`\n${ev.p_obs}`:""}`;
+  $("evMsg").innerHTML=`<div class="msg ok"><strong>Pedido registrado!</strong> Toque abaixo para enviar pelo WhatsApp e falar direto com a Ana Carolina.</div><a class="wbtn" href="https://wa.me/${CFG.eventNum}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Enviar pelo WhatsApp</a>`;
+  ["evName","evPhone","evDate","evPeople","evObs"].forEach(i=>$(i).value="");
+};
+buildDates().then(refresh);
+</script>
+</body>
+</html>

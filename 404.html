@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O Cedro</title>
+<script>
+  // /reservas/ → /reservas, /painel/ → /painel
+  var p=location.pathname;
+  if(p.length>1&&p.endsWith("/")){location.replace(p.replace(/\/+$/,"")+location.search+location.hash);}
+  else if(/\/index\.html$/.test(p)){location.replace(p.replace(/\/index\.html$/,"")||"/");}
+</script>
+<style>body{margin:0;font:16px/1.5 system-ui,sans-serif;background:#f2f4f0;color:#1d2420;display:grid;place-items:center;min-height:100vh;padding:16px}a{color:#2f5d50}</style>
+</head><body><main><h1>Página não encontrada</h1><p><a href="/">Ir para o início do O Cedro</a> · <a href="/reservas">Reservar mesa</a></p></main></body></html>

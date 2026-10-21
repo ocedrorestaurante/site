@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Painel · O Cedro</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="wrap">
+  <section id="login" class="card form phone" style="margin:40px auto 0;width:100%" hidden>
+    <div><div class="brand">O Cedro · Painel</div><div class="demo">Entre com o e-mail e a senha da equipe.</div></div>
+    <label for="lEmail">E-mail<input id="lEmail" type="email" autocomplete="username"></label>
+    <label for="lPass">Senha<input id="lPass" type="password" autocomplete="current-password"></label>
+    <div id="lMsg"></div>
+    <button class="primary" id="lBtn">Entrar</button>
+  </section>
+
+  <section id="app" hidden>
+    <div class="topbar" style="margin-bottom:12px"><h1>Painel O Cedro</h1><span class="sp"></span><button id="logout">Sair</button></div>
+    <nav class="tabs" role="tablist" style="margin-bottom:16px">
+      <button class="on" data-tab="noite">Noite</button><button data-tab="agenda">Agenda</button><button data-tab="relatorio">Relatório</button><button data-tab="ajustes">Ajustes</button>
+    </nav>
+
+    <div data-pane="noite" class="grid2">
+      <div style="display:grid;gap:16px;min-width:0;align-content:start">
+        <div class="card" style="display:grid;gap:12px">
+          <div class="row" style="align-items:end">
+            <label for="gDate">Noite<select id="gDate"></select></label>
+            <div class="kpi" style="flex:0 0 auto">Agora<strong id="clockTxt">--:--</strong></div>
+          </div>
+          <div class="kpis">
+            <div class="kpi">Salão reservado<strong id="kSal">0 / 68</strong></div>
+            <div class="kpi">Deck reservado<strong id="kDeck">0 / 38</strong></div>
+            <div class="kpi">Link de reserva<strong id="kLink">—</strong></div>
+          </div>
+          <div><div class="bar"><i id="barFill"></i><b style="left:75%"></b></div><p class="hint">Linha amarela = 75% do salão (51 lugares). Acima disso o link fecha.</p></div>
+        </div>
+        <div id="suggBox" style="display:grid;gap:8px"></div>
+        <div class="card">
+          <h2>Mapa da noite</h2>
+          <div class="legend"><span><i class="sw" style="background:var(--free)"></i>Livre</span><span><i class="sw" style="background:var(--warn)"></i>Reservada</span><span><i class="sw" style="background:var(--ok)"></i>Ocupada</span><span><i class="sw" style="background:var(--balcao);border-radius:50%"></i>Balcão ocupado</span></div>
+          <p class="hint" id="mapHint"></p>
+          <div id="comboBox" style="margin-bottom:10px" hidden></div>
+          <div class="mapbox"><svg id="map" viewBox="0 0 979 1002" xmlns="http://www.w3.org/2000/svg"><image class="plan" href="/planta.jpeg" width="979" height="1002"/><g id="layer"></g></svg></div>
+        </div>
+      </div>
+      <div style="display:grid;gap:16px;align-content:start;min-width:0">
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:8px"><h2 style="margin:0">Reservas</h2><button id="addWpp" class="primary" style="flex:0 0 auto">+ Nova reserva</button></div>
+          <div class="list" id="resList"></div>
+        </div>
+        <div class="card form" id="newForm" hidden>
+          <h2 id="nfTitle">Nova reserva</h2>
+          <div class="row" id="nfDateRow"><label for="nfDate">Data<input id="nfDate" type="date"></label></div>
+          <div class="row"><label for="nfName">Nome<input id="nfName"></label><label for="nfPeople">Pessoas<input id="nfPeople" type="number" min="1" max="20" value="2"></label></div>
+          <div class="row" id="nfResRow"><label for="nfTime">Chegada<select id="nfTime"></select></label><label for="nfPhone">WhatsApp<input id="nfPhone" inputmode="tel"></label></div>
+          <label for="nfArea">Área<select id="nfArea"></select></label>
+          <div id="nfObsRow"><label for="nfObs">Observação<input id="nfObs" placeholder="Aniversário, juntar mesas 19+20..."></label></div>
+          <label id="nfForceRow" style="display:flex;gap:8px;align-items:center;font-weight:400" hidden><input type="checkbox" id="nfForce" style="width:auto"> Reservar mesmo assim (vamos abrir nesse dia)</label>
+          <div id="nfMsg"></div>
+          <div class="row"><button class="primary" id="nfSave">Salvar</button><button id="nfCancel">Cancelar</button></div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:8px"><h2 style="margin:0">Sem reserva</h2><button id="addWalk" style="flex:0 0 auto">+ Chegou</button></div>
+          <div class="list" id="walkList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-pane="agenda" class="grid2" hidden>
+      <div style="display:grid;gap:16px;align-content:start;min-width:0">
+        <div class="card form">
+          <h2 style="margin:0">Buscar reserva</h2>
+          <label for="qText">Nome ou telefone<input id="qText" type="search" placeholder="Ex.: Carol ou 99732"></label>
+          <div class="list" id="qList"></div>
+        </div>
+        <div class="card">
+          <h2>Próximas noites</h2>
+          <div class="list" id="upList"></div>
+        </div>
+      </div>
+      <div style="display:grid;gap:16px;align-content:start;min-width:0">
+        <div class="card">
+          <h2>Pedidos de evento</h2>
+          <div class="list" id="evList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-pane="relatorio" hidden>
+      <div class="card" style="display:grid;gap:14px">
+        <div class="row" style="align-items:end"><h2 style="margin:0;flex:2">Relatório</h2>
+          <label for="rpPeriod" style="flex:1">Período<select id="rpPeriod"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></label></div>
+        <div class="kpis" id="rpKpis"></div>
+        <div><div class="lbl">Média de pessoas por dia da semana</div><div class="list" id="rpWeek"></div></div>
+        <div><div class="lbl">Noite a noite</div><div class="list" id="rpNights"></div></div>
+      </div>
+    </div>
+
+    <div data-pane="ajustes" class="grid2" hidden>
+      <div class="card form">
+        <h2 style="margin:0">Dias de funcionamento</h2>
+        <p class="hint" style="margin:0">Normal: terça a sábado. Use para feriados: fechar um dia que abriria, ou abrir uma segunda ou domingo.</p>
+        <div class="row"><label for="exDate">Data<input id="exDate" type="date"></label><label for="exMotivo">Motivo (opcional)<input id="exMotivo" placeholder="Ex.: Feriado de Finados"></label></div>
+        <p class="hint" id="exHint" style="margin:0"></p>
+        <div class="row"><button id="exClose">Fechar este dia</button><button class="primary" id="exOpen">Abrir este dia</button></div>
+        <div class="list" id="excList"></div>
+      </div>
+      <div class="card form">
+        <h2 style="margin:0">Aviso no celular</h2>
+        <p style="margin:0">Receba um aviso no celular a cada reserva feita pelo link e a cada pedido de evento, mesmo com o painel fechado.</p>
+        <ol style="margin:0;padding-left:20px;display:grid;gap:6px">
+          <li>Instale o app <strong>ntfy</strong> (Play Store ou App Store). É gratuito e não pede cadastro.</li>
+          <li>No app, toque em <strong>+</strong> e digite este nome de canal: <strong id="ntfyTopic" style="user-select:all;font-family:var(--mono)">…</strong> <button id="ntfyCopy" style="padding:2px 8px;font-size:12px">Copiar</button></li>
+          <li>Toque em <strong>Testar aviso</strong> abaixo. O celular deve apitar em alguns segundos.</li>
+        </ol>
+        <p class="hint" style="margin:0">Quem souber o nome do canal recebe os avisos, então passe só para a equipe.</p>
+        <button id="ntfyTest">Testar aviso</button>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<script>
+const sb=supabase.createClient(CFG.url,CFG.key);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>e.hidden=true,3500);}
+
+const TABLES=[
+ {id:"20",area:"salao",seats:4,x:767,y:744,rot:-43,shape:"q"},{id:"19",area:"salao",seats:4,x:703,y:676,rot:-43,shape:"q"},
+ {id:"17",area:"salao",seats:4,x:634,y:602,rot:-43,shape:"q"},{id:"06",area:"salao",seats:4,x:598,y:564,rot:-43,shape:"q"},
+ {id:"05",area:"salao",seats:4,x:527,y:488,rot:-43,shape:"q"},{id:"04",area:"salao",seats:2,x:489,y:448,rot:-43,shape:"s"},
+ {id:"13",area:"salao",seats:2,x:714,y:778,rot:-43,shape:"s"},{id:"14",area:"salao",seats:2,x:684,y:747,rot:-43,shape:"s"},
+ {id:"15",area:"salao",seats:2,x:651,y:711,rot:-43,shape:"s"},{id:"16",area:"salao",seats:2,x:619,y:676,rot:-43,shape:"s"},
+ {id:"12",area:"salao",seats:8,x:664,y:807,rot:47,shape:"l"},{id:"11",area:"salao",seats:4,x:614,y:753,rot:47,shape:"r"},
+ {id:"10",area:"salao",seats:6,x:561,y:697,rot:47,shape:"l"},{id:"09",area:"salao",seats:4,x:510,y:643,rot:47,shape:"r"},
+ {id:"08",area:"salao",seats:4,x:481,y:611,rot:47,shape:"r"},{id:"07",area:"salao",seats:6,x:441,y:550,rot:47,shape:"l"},
+ {id:"02",area:"salao",seats:6,x:447,y:378,rot:47,shape:"l"},
+ {id:"35",area:"deck",seats:4,x:409,y:305,rot:54,shape:"r"},{id:"34",area:"deck",seats:6,x:351,y:224,rot:54,shape:"l"},
+ {id:"28",area:"deck",seats:2,x:363,y:338,rot:54,shape:"s"},{id:"33",area:"deck",seats:2,x:305,y:257,rot:54,shape:"s"},
+ {id:"29",area:"deck",seats:2,x:320,y:368,rot:54,shape:"s"},{id:"32",area:"deck",seats:2,x:262,y:287,rot:54,shape:"s"},
+ {id:"30",area:"deck",seats:4,x:277,y:399,rot:54,shape:"r"},{id:"31",area:"deck",seats:4,x:219,y:318,rot:54,shape:"r"},
+ {id:"27",area:"deck",seats:4,x:411,y:695,rot:48,shape:"r"},{id:"26",area:"deck",seats:4,x:465,y:754,rot:48,shape:"r"},
+ {id:"25",area:"deck",seats:2,x:519,y:813,rot:48,shape:"s"},{id:"24",area:"deck",seats:2,x:566,y:865,rot:48,shape:"s"}];
+const BALCAO=[[713,541],[728,557],[743,573],[758,589],[773,605]];
+const SIZE={s:[24,24],q:[32,36],r:[30,46],l:[30,66]};
+const CAP={salao:68,deck:38}, LIMIT=51, MAX_GROUP=20, CUTOFF=20*60+20;
+const TIMES=["19:00","19:15","19:30","19:45"];
+const NS="http://www.w3.org/2000/svg";
+
+function spNow(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));return {day:`${p.year}-${p.month}-${p.day}`,min:+p.hour*60+ +p.minute,hhmm:`${p.hour}:${p.minute}`};}
+function spDate(off){return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo"}).format(new Date(Date.now()+off*864e5));}
+function label(iso,i){const [y,m,d]=iso.split("-").map(Number);const s=new Date(Date.UTC(y,m-1,d,12)).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit",timeZone:"UTC"});return i===0?"Hoje, "+s:i===1?"Amanhã, "+s:i===-1?"Ontem, "+s:s;}
+
+let gDay=spDate(0), R=[], W=[], E=[], NS_COUNT={}, picked=null, chan=null;
+
+// ---------- login ----------
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  $("login").hidden=!!session;$("app").hidden=!session;
+  if(session)start();
+}
+$("lBtn").onclick=async()=>{
+  $("lBtn").disabled=true;$("lMsg").innerHTML="";
+  const {error}=await sb.auth.signInWithPassword({email:$("lEmail").value.trim(),password:$("lPass").value});
+  $("lBtn").disabled=false;
+  if(error){$("lMsg").innerHTML=`<div class="msg bad">E-mail ou senha incorretos.</div>`;return;}
+  $("lPass").value="";boot();
+};
+$("lPass").addEventListener("keydown",e=>{if(e.key==="Enter")$("lBtn").click();});
+$("logout").onclick=async()=>{await sb.auth.signOut();if(chan)sb.removeChannel(chan);location.reload();};
+
+// ---------- dados ----------
+async function load(){
+  const [r,w,e]=await Promise.all([
+    sb.from("reservas").select("*").eq("dia",gDay).neq("status","cancelada").order("horario"),
+    sb.from("fila").select("*").eq("dia",gDay).neq("modo","saiu").order("chegada"),
+    sb.from("eventos").select("*").order("contatado").order("criado_em",{ascending:false}).limit(30)]);
+  if(r.error){toast("Erro ao carregar reservas. Confira a internet.");return;}
+  R=r.data;W=w.data||[];E=e.data||[];if(tab==="agenda")loadUp();
+  const phones=[...new Set(R.map(x=>x.telefone))];
+  NS_COUNT={};
+  if(phones.length){const {data}=await sb.from("reservas").select("telefone,dia").eq("status","nao_veio").in("telefone",phones);
+    (data||[]).forEach(x=>{if(x.dia!==gDay)NS_COUNT[x.telefone]=(NS_COUNT[x.telefone]||0)+1;});}
+  render();
+}
+async function upd(table,id,patch){const {error}=await sb.from(table).update(patch).eq("id",id);if(error){toast("Não salvou: "+error.message);return false;}return true;}
+async function cutoff(){
+  const now=spNow();$("clockTxt").textContent=now.hhmm;
+  if(gDay!==now.day||now.min<CUTOFF)return;
+  const late=R.filter(r=>r.status==="aguardando");
+  if(!late.length)return;
+  const {error}=await sb.from("reservas").update({status:"nao_veio",mesa:null}).eq("dia",gDay).eq("status","aguardando");
+  if(!error){toast(`20h20: ${late.length} reserva(s) não vieram. Mesas liberadas.`);load();}
+}
+async function buildNights(){
+  const offs=[-1,...Array(14).keys()], all=offs.map(spDate);
+  const {data}=await sb.rpc("dias_abertos",{p_de:all[0],p_ate:all[all.length-1]});
+  const open=new Set(data||[]);
+  if(!all.includes(gDay))gDay=spDate(0);
+  $("gDate").innerHTML=offs.map((i,k)=>[all[k],i]).filter(([d,i])=>i===0||d===gDay||open.has(d))
+    .map(([d,i])=>`<option value="${d}" ${d===gDay?"selected":""}>${label(d,i)}${open.has(d)?"":" · fechado"}</option>`).join("");
+}
+// ---------- dias de funcionamento ----------
+const WD=["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+const wdOf=iso=>{const [y,m,d]=iso.split("-").map(Number);return new Date(Date.UTC(y,m-1,d)).getUTCDay();};
+const fmtDia=iso=>iso.split("-").reverse().join("/")+" ("+WD[wdOf(iso)]+")";
+async function loadExc(){
+  const {data}=await sb.from("excecoes_dias").select("*").gte("dia",spDate(-1)).order("dia");
+  $("excList").innerHTML=(data&&data.length)?data.map(x=>`<div class="item" data-d="${x.dia}"><span class="who">${fmtDia(x.dia)}</span><span class="status ${x.aberto?"s-open":"s-closed"}">${x.aberto?"Abre":"Fechado"}</span>
+    <span class="meta">${esc(x.motivo||"")}</span><span class="acts"><button data-act="del">Voltar ao normal</button></span></div>`).join(""):`<p class="hint">Nenhuma exceção. Abrimos de terça a sábado.</p>`;
+}
+function excHint(){const d=$("exDate").value;if(!d){$("exHint").textContent="";return;}const w=wdOf(d);
+  $("exHint").textContent=`${fmtDia(d)}: normalmente ${w>=2&&w<=6?"aberto":"fechado"}.`;}
+$("exDate").oninput=excHint;
+async function setExc(aberto){
+  const d=$("exDate").value;if(!d){toast("Escolha a data.");return;}
+  const {error}=await sb.from("excecoes_dias").upsert({dia:d,aberto,motivo:$("exMotivo").value.trim()||null});
+  if(error){toast("Não salvou: "+error.message);return;}
+  if(!aberto){const {data}=await sb.from("reservas").select("id").eq("dia",d).in("status",["aguardando"]);
+    if(data&&data.length)toast(`Atenção: ${data.length} reserva(s) já feitas para ${fmtDia(d)}. Avise esses clientes.`);else toast(`${fmtDia(d)} fechado para reservas.`);}
+  else toast(`${fmtDia(d)} aberto para reservas.`);
+  $("exMotivo").value="";loadExc();buildNights();
+}
+$("exClose").onclick=()=>setExc(false);$("exOpen").onclick=()=>setExc(true);
+$("excList").addEventListener("click",async e=>{const b=e.target.closest("button[data-act=del]");if(!b)return;
+  const d=e.target.closest("[data-d]").dataset.d;const {error}=await sb.from("excecoes_dias").delete().eq("dia",d);
+  if(error){toast("Não salvou: "+error.message);return;}toast(`${fmtDia(d)} voltou ao normal.`);loadExc();buildNights();});
+
+function start(){
+  buildNights();loadExc();
+  $("exDate").min=spDate(0);
+  $("nfTime").innerHTML=TIMES.map(t=>`<option>${t}</option>`).join("");
+  load().then(cutoff);
+  setInterval(cutoff,60000);
+  chan=sb.channel("painel")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},p=>{if(p.new.origem==="link")toast(`Nova reserva: ${p.new.nome}, ${p.new.pessoas} pessoa(s), ${p.new.dia.split("-").reverse().slice(0,2).join("/")} ${p.new.horario}`);load();})
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"eventos"},p=>{toast(`Novo pedido de evento: ${p.new.nome}`);load();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"fila"},()=>load())
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"reservas"},()=>load())
+    .subscribe();
+}
+$("gDate").onchange=e=>{gDay=e.target.value;picked=null;load();};
+
+// ---------- regras ----------
+const active=r=>r.status!=="cancelada"&&r.status!=="nao_veio";
+const seats=area=>R.filter(r=>r.area===area&&active(r)).reduce((a,r)=>a+r.pessoas,0);
+// Montagens (juntar mesas) — mesa salva como "10+11+12"
+const COMBOS=[
+  {id:"19+20",seats:8,txt:"19 + 20 (8 lugares)"},
+  {id:"05+06",seats:8,txt:"05 + 06 entre os pilares (8 lugares)"},
+  {id:"10+11+12",seats:20,txt:"10 + 11 + 12 no formato da 20 (até 20 lugares)"}];
+function mesaCap(m){const c=COMBOS.find(c=>c.id===m);if(c)return c.seats;if(m.endsWith("+extra"))return 6;return TABLES.find(t=>t.id===m)?.seats||0;}
+const has=(mesa,id)=>!!mesa&&mesa.split("+").includes(id);
+function comboOptions(n){
+  const out=COMBOS.filter(c=>c.seats>=n&&c.id.split("+").every(id=>tableState(id)==="livre"));
+  TABLES.filter(t=>t.seats===4&&tableState(t.id)==="livre"&&n>4&&n<=6).forEach(t=>out.push({id:t.id+"+extra",seats:6,txt:`${t.id} + mesa extra (6 lugares)`}));
+  return out.sort((a,b)=>a.seats-b.seats);
+}
+function tableState(id){
+  const r=R.find(r=>has(r.mesa,id)&&(r.status==="aguardando"||r.status==="chegou"));
+  if(r)return r.status==="chegou"?"ocupada":"reservada";
+  if(W.find(w=>has(w.mesa,id)&&w.modo!=="saiu"))return "ocupada";
+  return "livre";
+}
+function suggestions(){
+  if(gDay!==spNow().day)return [];
+  const after=spNow().min>=CUTOFF;
+  const queue=W.filter(w=>w.modo==="esperando").sort((a,b)=>a.chegada.localeCompare(b.chegada));
+  const free=TABLES.filter(t=>t.area==="salao"&&tableState(t.id)==="livre");const used=new Set(),out=[];
+  for(const w of queue){const fit=free.filter(t=>!used.has(t.id)&&t.seats>=w.pessoas).sort((a,b)=>a.seats-b.seats)[0];
+    if(fit&&(after||fit.seats-w.pessoas<=2)){used.add(fit.id);out.push({w,t:fit});}}
+  return out;
+}
+function confLink(r){
+  const digits=String(r.telefone||"").replace(/\D/g,"");if(digits.length<10)return `<span class="hint">Sem WhatsApp para confirmar</span>`;
+  const num=digits.length<=11?"55"+digits:digits;
+  const d=r.dia.split("-").reverse().slice(0,2).join("/");
+  const txt=`Olá, ${r.nome}! Sua reserva no O Cedro está confirmada para ${d}, ${r.pessoas} pessoa(s), chegada às ${r.horario}.\nLembrando que a mesa fica reservada até as 20h. Te esperamos!`;
+  return `<a class="wbtn wconf" href="https://wa.me/${num}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${r.confirmada?"Confirmação enviada ✓ (reenviar)":"Confirmar no WhatsApp"}</a>`;
+}
+
+function waNum(t){const d=String(t||"").replace(/\D/g,"");return d.length<10?null:(d.length<=11?"55"+d:d);}
+function remLink(r){
+  const num=waNum(r.telefone);if(!num)return "";
+  const txt=`Olá, ${r.nome}! Passando para lembrar da sua reserva hoje no O Cedro, ${r.pessoas} pessoa(s), chegada às ${r.horario}.\nA mesa fica reservada até as 20h. Até logo!`;
+  return `<a class="wbtn wrem" style="background:var(--warn)" href="https://wa.me/${num}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${r.lembrada?"Lembrete enviado ✓":"Lembrar no WhatsApp"}</a>`;
+}
+
+// ---------- tela ----------
+function render(){
+  const sal=seats("salao"),deck=seats("deck");
+  $("kSal").textContent=`${sal} / ${CAP.salao}`;$("kDeck").textContent=`${deck} / ${CAP.deck}`;
+  $("barFill").style.width=Math.min(100,sal/CAP.salao*100)+"%";
+  $("kLink").innerHTML=sal<LIMIT?`<span class="status s-open">Aberto</span>`:sal>=CAP.salao?`<span class="status s-closed">Fechado · salão 100%</span>`:`<span class="status s-warn">Fechado · só WhatsApp</span>`;
+  $("suggBox").innerHTML=suggestions().map(({w,t})=>`<div class="sugg"><p><strong>Mesa ${t.id}</strong> (${t.seats} lugares) livre → <strong>${esc(w.nome)}</strong>, ${w.pessoas} pessoa(s), no ${w.onde==="deck"?"deck":"balcão"} desde ${w.chegada}</p><button class="primary" data-w="${w.id}" data-t="${t.id}">Encaixar</button></div>`).join("");
+  const rs=R.slice().sort((a,b)=>(a.status==="nao_veio")-(b.status==="nao_veio")||a.horario.localeCompare(b.horario));
+  $("resList").innerHTML=rs.length?rs.map(r=>{
+    const nf=NS_COUNT[r.telefone]||0;
+    const st={chegou:`<span class="status s-open">Chegou</span>`,nao_veio:`<span class="status s-closed">Não veio</span>`,saiu:`<span class="status">Saiu</span>`}[r.status]||`<span class="status s-warn">Aguardando</span>`;
+    return `<div class="item ${picked?.kind==="r"&&picked.id===r.id?"sel":""}" data-r="${r.id}">
+      <span class="who">${esc(r.nome)}${!r.vista&&r.origem==="link"?` <span class="tag">nova</span>`:""}</span>${st}
+      <span class="meta">${r.pessoas} pessoa(s) · ${r.horario} · ${r.area==="deck"?"Deck":"Salão"} · ${r.mesa?`<span class="tag">Mesa ${r.mesa.replace("+extra"," + extra")}</span>`:"sem mesa"} · ${r.origem==="link"?"pelo link":"WhatsApp"} · ${esc(r.telefone)} ${nf?`<span class="flag">${nf} falta(s) antes</span>`:""}${r.obs?`<br>${esc(r.obs)}`:""}</span>
+      ${r.status==="nao_veio"||r.status==="saiu"?"":`<span class="acts"><button data-act="pick">${r.mesa?"Trocar mesa":"Escolher mesa"}</button>${r.status==="aguardando"?`<button data-act="arrive">Chegou</button>`:""}<button data-act="edit">Editar</button>${r.status==="aguardando"?`<button data-act="cancel">Cancelar</button>`:""}${r.status==="chegou"?`<button data-act="leave">Liberar mesa</button>`:""}${r.mesa&&r.status==="aguardando"?confLink(r):""}${r.status==="aguardando"&&r.dia===spNow().day?remLink(r):""}</span>`}
+    </div>`;}).join(""):`<p class="hint">Nenhuma reserva nessa noite.</p>`;
+  $("walkList").innerHTML=W.length?W.map(w=>`<div class="item ${picked?.kind==="w"&&picked.id===w.id?"sel":""}" data-w="${w.id}">
+      <span class="who">${esc(w.nome)}</span><span class="status ${w.modo==="esperando"?"s-warn":"s-open"}">${w.mesa?"Mesa "+w.mesa.replace("+extra"," + extra"):w.modo==="esperando"?"Esperando":"Jantando"}</span>
+      <span class="meta">${w.pessoas} pessoa(s) · ${w.mesa?"no salão":w.onde==="deck"?"Deck":"Balcão"} · chegou ${w.chegada}</span>
+      <span class="acts">${w.mesa?"":`<button data-act="pick">Escolher mesa</button>`}${!w.mesa&&w.modo==="esperando"?`<button data-act="dine">Vai jantar aqui</button>`:""}<button data-act="leave">Saiu</button></span></div>`).join(""):`<p class="hint">Ninguém esperando.</p>`;
+  $("evList").innerHTML=E.length?E.map(e=>`<div class="item" data-e="${e.id}" style="${e.contatado?"opacity:.55":""}"><span class="who">${esc(e.nome)}</span><span class="status ${e.contatado?"s-open":"s-warn"}">${e.contatado?"Contatado":"Falar com cliente"}</span>
+    <span class="meta">${esc(e.tipo)} · ${e.pessoas} pessoas${e.data?` · ${e.data.split("-").reverse().join("/")}`:""} · ${esc(e.telefone)}${e.obs?`<br>${esc(e.obs)}`:""}</span>
+    <span class="acts"><button data-act="done">${e.contatado?"Reabrir":"Marcar como contatado"}</button></span></div>`).join(""):`<p class="hint">Nenhum pedido de evento.</p>`;
+  drawMap();
+}
+function el(tag,a){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function drawMap(){
+  const L=$("layer");L.textContent="";
+  const balUsed=W.filter(w=>w.onde==="balcao"&&!w.mesa).reduce((a,w)=>a+w.pessoas,0);
+  BALCAO.forEach(([x,y],i)=>L.appendChild(el("circle",{cx:x,cy:y,r:7,fill:i<balUsed?"var(--balcao)":"var(--paper)",stroke:"var(--balcao)","stroke-width":2})));
+  const need=picked?(picked.kind==="r"?R.find(r=>r.id===picked.id):W.find(w=>w.id===picked.id)):null;
+  TABLES.forEach(t=>{const [w,h]=SIZE[t.shape];const st=tableState(t.id);
+    const fill=st==="livre"?"var(--free)":st==="reservada"?"var(--warn)":"var(--ok)";
+    const g=el("g",{class:"tbl"+(need&&st==="livre"&&t.seats>=need.pessoas?" target":""),transform:`translate(${t.x} ${t.y}) rotate(${t.rot})`,"data-id":t.id});
+    g.appendChild(el("rect",{x:-w/2,y:-h/2,width:w,height:h,rx:4,fill,stroke:"#fff","stroke-width":1.5}));
+    const tx=el("text",{class:"t-num",transform:`rotate(${-t.rot})`});tx.textContent=t.id;g.appendChild(tx);L.appendChild(g);});
+  $("mapHint").textContent=need?`Encaixando ${need.nome} (${need.pessoas}). Toque numa mesa com borda amarela${need.pessoas>4?" ou escolha uma montagem abaixo":""}.`:"Toque em “Escolher mesa” numa reserva ou grupo e depois numa mesa do mapa.";
+  const co=need&&need.pessoas>4?comboOptions(need.pessoas):[];
+  $("comboBox").innerHTML=co.length?`<div class="lbl">Montagens livres para ${need.pessoas} pessoas:</div><div class="pills">${co.map(c=>`<button data-combo="${c.id}">${c.txt}</button>`).join("")}</div>`:(need&&need.pessoas>8&&!co.length?`<div class="msg bad">As mesas 10, 11 e 12 não estão todas livres. Libere ou troque alguma delas para montar o grupo.</div>`:"");
+  $("comboBox").hidden=!need;
+}
+
+// ---------- ações ----------
+async function assign(mesa){
+  const obj=picked.kind==="r"?R.find(r=>r.id===picked.id):W.find(w=>w.id===picked.id);const kind=picked.kind;picked=null;
+  const ok=kind==="r"?await upd("reservas",obj.id,{mesa,vista:true}):await upd("fila",obj.id,{mesa,modo:"jantando"});
+  const nome=mesa.includes("+")?"montagem "+mesa.replace("+extra"," + mesa extra"):"mesa "+mesa;
+  if(ok){toast(kind==="r"?`${obj.nome} → ${nome}. Agora toque em “Confirmar no WhatsApp”.`:`${obj.nome} → ${nome}`);load();}
+}
+$("comboBox").addEventListener("click",e=>{const b=e.target.closest("button[data-combo]");if(b&&picked)assign(b.dataset.combo);});
+$("map").addEventListener("click",async e=>{
+  const g=e.target.closest(".tbl");if(!g||!picked)return;const id=g.dataset.id,t=TABLES.find(t=>t.id===id);
+  const obj=picked.kind==="r"?R.find(r=>r.id===picked.id):W.find(w=>w.id===picked.id);
+  if(tableState(id)!=="livre"){toast(`Mesa ${id} já está em uso.`);return;}
+  if(t.seats<obj.pessoas){toast(`Mesa ${id} tem ${t.seats} lugares e o grupo tem ${obj.pessoas}. Escolha uma montagem acima do mapa.`);return;}
+  assign(id);
+});
+$("resList").addEventListener("click",async e=>{
+  const it=e.target.closest("[data-r]");if(!it)return;const r=R.find(x=>x.id===it.dataset.r);
+  if(e.target.closest("a.wconf")){upd("reservas",r.id,{confirmada:true,vista:true}).then(()=>setTimeout(load,500));return;}
+  if(e.target.closest("a.wrem")){upd("reservas",r.id,{lembrada:true}).then(()=>setTimeout(load,500));return;}
+  const b=e.target.closest("button[data-act]");
+  if(!b){if(!r.vista&&r.origem==="link"){await upd("reservas",r.id,{vista:true});load();}return;}
+  const a=b.dataset.act;
+  if(a==="pick"){picked={kind:"r",id:r.id};if(r.mesa)await upd("reservas",r.id,{mesa:null});await load();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
+  if(a==="edit"){openForm("r",r);return;}
+  const patch={arrive:{status:"chegou",vista:true},cancel:{status:"cancelada",mesa:null},leave:{status:"saiu"}}[a];
+  if(await upd("reservas",r.id,patch))load();
+});
+$("walkList").addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-act]");if(!b)return;const w=W.find(x=>x.id===e.target.closest("[data-w]").dataset.w);const a=b.dataset.act;
+  if(a==="pick"){picked={kind:"w",id:w.id};render();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
+  const patch=a==="dine"?{modo:"jantando"}:{modo:"saiu",mesa:null};
+  if(await upd("fila",w.id,patch))load();
+});
+$("suggBox").addEventListener("click",async e=>{const b=e.target.closest("button[data-w]");if(!b)return;
+  const w=W.find(x=>x.id===b.dataset.w);if(await upd("fila",w.id,{mesa:b.dataset.t,modo:"jantando"})){toast(`${w.nome} → mesa ${b.dataset.t}`);load();}});
+$("evList").addEventListener("click",async e=>{const b=e.target.closest("button[data-act]");if(!b)return;
+  const ev=E.find(x=>x.id===e.target.closest("[data-e]").dataset.e);if(await upd("eventos",ev.id,{contatado:!ev.contatado}))load();});
+
+let nfKind="r", editing=null;
+function openForm(kind,rec){nfKind=kind;editing=rec||null;$("newForm").hidden=false;$("nfMsg").innerHTML="";
+  $("nfName").value=rec?.nome||"";$("nfPhone").value=rec&&rec.telefone!=="—"?rec.telefone:"";$("nfObs").value=rec?.obs||"";$("nfPeople").value=rec?.pessoas||2;
+  $("nfForce").checked=false;$("nfForceRow").hidden=true;
+  $("nfDate").min=spDate(0);$("nfDate").value=rec?rec.dia:(gDay>=spDate(0)?gDay:spDate(0));
+  $("nfTitle").textContent=rec?`Editar reserva de ${rec.nome}`:kind==="r"?"Nova reserva (feita pela equipe)":"Chegou sem reserva";
+  $("nfSave").textContent=rec?"Salvar alterações":"Salvar";
+  ["nfResRow","nfDateRow","nfObsRow"].forEach(id=>$(id).hidden=kind!=="r");
+  $("nfArea").innerHTML=kind==="r"?`<option value="salao">Salão</option><option value="deck">Deck</option>`:`<option value="deck">Esperando no deck</option><option value="balcao">Balcão</option>`;
+  if(rec){$("nfArea").value=rec.area;$("nfTime").value=rec.horario;}
+  $("newForm").scrollIntoView({behavior:"smooth",block:"center"});$("nfName").focus();}
+$("addWpp").onclick=()=>openForm("r");$("addWalk").onclick=()=>openForm("w");$("nfCancel").onclick=()=>{$("newForm").hidden=true;editing=null;};
+$("nfSave").onclick=async()=>{
+  const nome=$("nfName").value.trim()||"Sem nome",pessoas=+$("nfPeople").value||1,area=$("nfArea").value,bad=m=>$("nfMsg").innerHTML=`<div class="msg bad">${m}</div>`;
+  let res;
+  if(nfKind==="r"){
+    const dia=$("nfDate").value;
+    if(!dia)return bad("Escolha a data.");
+    if(dia<spDate(0)&&!(editing&&dia===editing.dia))return bad("Essa data já passou.");
+    if(pessoas>MAX_GROUP)return bad(`O máximo da casa é ${MAX_GROUP} pessoas (10 + 11 + 12 juntas).`);
+    const {data:ab}=await sb.rpc("dias_abertos",{p_de:dia,p_ate:dia});
+    if(ab&&!ab.length&&!$("nfForce").checked){$("nfForceRow").hidden=false;return bad(`${fmtDia(dia)} está marcado como fechado. Se for abrir, marque a caixa abaixo ou abra o dia em "Dias de funcionamento".`);}
+    let q=sb.from("reservas").select("area,pessoas,status").eq("dia",dia).in("status",["aguardando","chegou","saiu"]);
+    if(editing)q=q.neq("id",editing.id);
+    const {data:rows}=await q;
+    const sum=a=>(rows||[]).filter(r=>r.area===a).reduce((s,r)=>s+r.pessoas,0), sal=sum("salao"), dk=sum("deck");
+    if(area==="salao"&&sal+pessoas>CAP.salao)return bad(`Passa de 100% do salão (já tem ${sal} de ${CAP.salao} lugares nesse dia).`);
+    if(area==="deck"&&sal>=CAP.salao)return bad("Salão lotado nesse dia: o deck fica para quem chega sem reserva.");
+    if(area==="deck"&&dk+pessoas>CAP.deck)return bad("Deck cheio nesse dia.");
+    const rec={dia,nome,pessoas,horario:$("nfTime").value,area,telefone:$("nfPhone").value.trim()||"—",obs:$("nfObs").value.trim()||null};
+    if(editing){
+      if(editing.mesa&&(dia!==editing.dia||area!==editing.area||pessoas>mesaCap(editing.mesa))){rec.mesa=null;rec.confirmada=false;}
+      else if(dia!==editing.dia||rec.horario!==editing.horario||pessoas!==editing.pessoas)rec.confirmada=false;
+      res=await sb.from("reservas").update(rec).eq("id",editing.id);
+    }else res=await sb.from("reservas").insert({...rec,origem:"whatsapp",vista:true});
+    if(!res.error){const was=editing;editing=null;$("newForm").hidden=true;
+      toast(was?`Reserva alterada: ${nome}, ${pessoas} pessoa(s), ${fmtDia(dia)} ${rec.horario}.${rec.mesa===null&&was.mesa?" A mesa foi liberada: escolha de novo.":""}`:`Reserva salva: ${nome}, ${pessoas} pessoa(s), ${fmtDia(dia)} ${rec.horario}.`);
+      if(dia!==gDay){gDay=dia;await buildNights();if(![...$("gDate").options].some(o=>o.value===dia))$("gDate").insertAdjacentHTML("beforeend",`<option value="${dia}" selected>${fmtDia(dia)}</option>`);$("gDate").value=dia;}
+      load();return;}
+  }else{
+    if(area==="balcao"){const used=W.filter(w=>w.onde==="balcao"&&!w.mesa).reduce((a,w)=>a+w.pessoas,0);if(used+pessoas>5)return bad(`Balcão tem só ${5-used} lugar(es) livre(s).`);}
+    res=await sb.from("fila").insert({dia:gDay,nome,pessoas,onde:area,chegada:spNow().hhmm});
+  }
+  if(res.error)return bad("Não salvou: "+res.error.message);
+  $("newForm").hidden=true;load();
+};
+// ---------- abas ----------
+let tab="noite";
+document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(!b)return;showTab(b.dataset.tab);});
+function showTab(t){tab=t;document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  document.querySelectorAll("[data-pane]").forEach(p=>p.hidden=p.dataset.pane!==t);
+  if(t==="agenda")loadUp();if(t==="relatorio")loadReport();if(t==="ajustes"){loadExc();loadNtfy();}}
+function goNight(d){gDay=d;picked=null;buildNights().then(()=>{if(![...$("gDate").options].some(o=>o.value===d))$("gDate").insertAdjacentHTML("beforeend",`<option value="${d}">${fmtDia(d)}</option>`);$("gDate").value=d;});load();showTab("noite");}
+
+// ---------- agenda: próximas noites ----------
+async function loadUp(){
+  const de=spDate(0),ate=spDate(20);
+  const [{data:rows},{data:open}]=await Promise.all([
+    sb.from("reservas").select("dia,pessoas,area,status,origem").gte("dia",de).lte("dia",ate).in("status",["aguardando","chegou","saiu"]),
+    sb.rpc("dias_abertos",{p_de:de,p_ate:ate})]);
+  const by={};(rows||[]).forEach(r=>{const x=by[r.dia]||(by[r.dia]={n:0,sal:0,deck:0});x.n++;x[r.area==="deck"?"deck":"sal"]+=r.pessoas;});
+  const days=[...new Set([...(open||[]),...Object.keys(by)])].sort();
+  $("upList").innerHTML=days.length?days.map(d=>{const x=by[d]||{n:0,sal:0,deck:0};const isOpen=(open||[]).includes(d);
+    const st=!isOpen?`<span class="status s-closed">Fechado</span>`:x.sal>=CAP.salao?`<span class="status s-closed">Salão lotado</span>`:x.sal>=LIMIT?`<span class="status s-warn">Link fechado</span>`:`<span class="status s-open">Link aberto</span>`;
+    return `<div class="item" data-go="${d}" style="cursor:pointer"><span class="who">${fmtDia(d)}${d===de?" · hoje":""}</span>${st}
+      <span class="meta">${x.n} reserva(s) · ${x.sal+x.deck} pessoas (salão ${x.sal}/${CAP.salao}, deck ${x.deck}/${CAP.deck})</span>
+      <div style="grid-column:1/-1;display:flex;gap:2px"><div class="hbar" style="width:${Math.min(100,x.sal/CAP.salao*100)}%"></div></div></div>`;}).join(""):`<p class="hint">Nada nas próximas semanas.</p>`;
+}
+$("upList").addEventListener("click",e=>{const it=e.target.closest("[data-go]");if(it)goNight(it.dataset.go);});
+
+// ---------- busca ----------
+let qT=null;
+$("qText").addEventListener("input",()=>{clearTimeout(qT);qT=setTimeout(search,300);});
+async function search(){
+  const q=$("qText").value.trim();if(q.length<2){$("qList").innerHTML="";return;}
+  const digits=q.replace(/\D/g,"");
+  let req=sb.from("reservas").select("*").gte("dia",spDate(-60)).order("dia",{ascending:false}).limit(30);
+  req=digits.length>=4?req.ilike("telefone",`%${digits.slice(-8).split("").join("%")}%`):req.ilike("nome",`%${q.replace(/[%_]/g,"")}%`);
+  const {data,error}=await req;
+  if(error){$("qList").innerHTML=`<p class="hint">Erro na busca.</p>`;return;}
+  const lab={aguardando:"Aguardando",chegou:"Chegou",saiu:"Saiu",nao_veio:"Não veio",cancelada:"Cancelada"};
+  $("qList").innerHTML=data.length?data.map(r=>`<div class="item" data-go="${r.dia}" style="cursor:pointer"><span class="who">${esc(r.nome)}</span><span class="status ${r.status==="nao_veio"||r.status==="cancelada"?"s-closed":r.status==="aguardando"?"s-warn":"s-open"}">${lab[r.status]}</span>
+    <span class="meta">${fmtDia(r.dia)} · ${r.horario} · ${r.pessoas} pessoa(s) · ${r.area==="deck"?"Deck":"Salão"}${r.mesa?` · Mesa ${r.mesa}`:""} · ${esc(r.telefone)}</span></div>`).join(""):`<p class="hint">Nenhuma reserva encontrada.</p>`;
+}
+$("qList").addEventListener("click",e=>{const it=e.target.closest("[data-go]");if(it)goNight(it.dataset.go);});
+
+// ---------- relatório ----------
+$("rpPeriod").onchange=loadReport;
+async function loadReport(){
+  const n=+$("rpPeriod").value, de=spDate(-n), ate=spDate(0);
+  const [{data:rs},{data:ws}]=await Promise.all([
+    sb.from("reservas").select("dia,pessoas,status,origem").gte("dia",de).lte("dia",ate),
+    sb.from("fila").select("dia,pessoas").gte("dia",de).lte("dia",ate)]);
+  const R2=rs||[],W2=ws||[];
+  const valid=R2.filter(r=>r.status!=="cancelada"), came=R2.filter(r=>r.status==="chegou"||r.status==="saiu"), no=R2.filter(r=>r.status==="nao_veio");
+  const decided=came.length+no.length, sumP=a=>a.reduce((s,r)=>s+r.pessoas,0);
+  const link=valid.filter(r=>r.origem==="link").length;
+  const k=(t,v,sub)=>`<div class="kpi">${t}<strong>${v}</strong>${sub?`<span class="hint" style="margin:0">${sub}</span>`:""}</div>`;
+  $("rpKpis").innerHTML=k("Reservas",valid.length,`${sumP(valid)} pessoas`)+k("Compareceram",came.length,`${sumP(came)} pessoas`)
+    +k("Faltas",no.length,decided?`${Math.round(no.length/decided*100)}% das reservas`:"")+k("Canceladas",R2.length-valid.length,"")
+    +k("Pelo link",valid.length?Math.round(link/valid.length*100)+"%":"—",`${link} link · ${valid.length-link} WhatsApp`)+k("Sem reserva",W2.length,`${sumP(W2)} pessoas`);
+  const nights={};
+  came.forEach(r=>{(nights[r.dia]=nights[r.dia]||{res:0,walk:0}).res+=r.pessoas;});
+  W2.forEach(w=>{(nights[w.dia]=nights[w.dia]||{res:0,walk:0}).walk+=w.pessoas;});
+  const list=Object.entries(nights).sort((a,b)=>b[0].localeCompare(a[0]));
+  const max=Math.max(1,...list.map(([,x])=>x.res+x.walk));
+  $("rpNights").innerHTML=list.length?list.map(([d,x])=>`<div class="item"><span class="who">${fmtDia(d)}</span><span class="tag">${x.res+x.walk} pessoas</span>
+    <span class="meta">${x.res} com reserva · ${x.walk} sem reserva</span>
+    <div style="grid-column:1/-1;display:flex;gap:2px"><div class="hbar" style="width:${x.res/max*100}%"></div><div class="hbar w" style="width:${x.walk/max*100}%"></div></div></div>`).join("")
+    :`<p class="hint">Ainda sem movimento registrado nesse período.</p>`;
+  const wk={};list.forEach(([d,x])=>{const w=wdOf(d);(wk[w]=wk[w]||[]).push(x.res+x.walk);});
+  $("rpWeek").innerHTML=Object.keys(wk).length?[2,3,4,5,6,0,1].filter(w=>wk[w]).map(w=>{const a=wk[w],avg=Math.round(a.reduce((s,v)=>s+v,0)/a.length);
+    return `<div class="item"><span class="who" style="text-transform:capitalize">${WD[w]}</span><span class="tag">${avg} pessoas em média</span><span class="meta">${a.length} noite(s)</span></div>`;}).join(""):`<p class="hint">Sem dados ainda.</p>`;
+}
+
+// ---------- aviso no celular ----------
+async function loadNtfy(){const {data}=await sb.from("config").select("valor").eq("chave","ntfy_topico").maybeSingle();$("ntfyTopic").textContent=data?.valor||"(não configurado)";}
+$("ntfyCopy").onclick=()=>{const t=$("ntfyTopic").textContent;try{navigator.clipboard.writeText(t).then(()=>toast("Copiado."),()=>toast("Selecione o nome e copie."));}catch(e){toast("Selecione o nome e copie.");}};
+$("ntfyTest").onclick=async()=>{const {error}=await sb.rpc("testar_aviso");toast(error?"Não enviou: "+error.message:"Aviso de teste enviado. Confira o celular.");};
+
+boot();
+</script>
+</body>
+</html>

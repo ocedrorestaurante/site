@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>O Cedro · Restaurante e Bar</title>
+<meta name="description" content="O Cedro, restaurante e bar em Votuporanga. Reserve sua mesa online.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+:root{--bg:#f2f4f0;--fg:#1d2420;--muted:#5d6a63;--accent:#2f5d50;--line:#d9dfd9;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#141917;--fg:#e8ede9;--muted:#9aa8a0;--accent:#6fb39d;--line:#2f3934;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;display:grid;place-items:center;
+  padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+main{max-width:420px;width:100%;display:grid;gap:22px}
+.mark{width:44px;height:44px;border-radius:12px;background:var(--accent);display:grid;place-items:center}
+h1{font:700 clamp(40px,12vw,56px)/1 "Bricolage Grotesque",system-ui,sans-serif;margin:0;letter-spacing:-.01em}
+p{margin:0;color:var(--muted)}
+.btns{display:grid;gap:10px}
+a.btn{display:block;text-align:center;padding:14px 16px;border-radius:12px;font-weight:500;text-decoration:none;border:1px solid var(--line);color:var(--fg)}
+a.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+a.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+small{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <div class="mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 2 5 12h4l-3 5h12l-3-5h4z"/><path d="M12 17v5"/></svg></div>
+  <div>
+    <h1>O Cedro</h1>
+    <p>Restaurante e bar · Votuporanga, SP</p>
+  </div>
+  <div class="btns">
+    <a class="btn primary" href="/reservas">Reservar mesa</a>
+    <a class="btn" href="https://wa.me/5517997326503?text=Ol%C3%A1!" target="_blank" rel="noopener">Falar no WhatsApp</a>
+    <a class="btn" href="https://wa.me/5517997326503?text=Ol%C3%A1!%20Quero%20saber%20sobre%20eventos%20no%20O%20Cedro." target="_blank" rel="noopener">Eventos</a>
+  </div>
+  <small>WhatsApp (17) 99732-6503 · Em breve: cardápio e carta de vinhos.</small>
+</main>
+</body>
+</html>
