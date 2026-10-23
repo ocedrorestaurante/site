@@ -257,7 +257,8 @@ const COMBOS=[
   {id:"19+20",seats:8,txt:"19 + 20 (8 lugares)"},
   {id:"05+06",seats:8,txt:"05 + 06 entre os pilares (8 lugares)"},
   {id:"10+11+12",seats:20,txt:"10 + 11 + 12 no formato da 20 (até 20 lugares)"}];
-function mesaCap(m){const c=COMBOS.find(c=>c.id===m);if(c)return c.seats;if(m.endsWith("+extra"))return 6;return TABLES.find(t=>t.id===m)?.seats||0;}
+function mesaCap(m){const c=COMBOS.find(c=>c.id===m);if(c)return c.seats;return m.split("+").reduce((s,id)=>s+(id==="extra"?2:(TABLES.find(t=>t.id===id)?.seats||0)),0);}
+let multi=null; // mesas escolhidas para juntar livremente
 const has=(mesa,id)=>!!mesa&&mesa.split("+").includes(id);
 function comboOptions(n){
   const out=COMBOS.filter(c=>c.seats>=n&&c.id.split("+").every(id=>tableState(id)==="livre"));
@@ -332,20 +333,34 @@ function drawMap(){
     const tx=el("text",{class:"t-num",transform:`rotate(${-t.rot})`});tx.textContent=t.id;g.appendChild(tx);L.appendChild(g);});
   $("mapHint").textContent=need?`Encaixando ${need.nome} (${need.pessoas}). Toque numa mesa com borda amarela${need.pessoas>4?" ou escolha uma montagem abaixo":""}.`:"Toque em “Escolher mesa” numa reserva ou grupo e depois numa mesa do mapa.";
   const co=need&&need.pessoas>4?comboOptions(need.pessoas):[];
-  $("comboBox").innerHTML=co.length?`<div class="lbl">Montagens livres para ${need.pessoas} pessoas:</div><div class="pills">${co.map(c=>`<button data-combo="${c.id}">${c.txt}</button>`).join("")}</div>`:(need&&need.pessoas>8&&!co.length?`<div class="msg bad">As mesas 10, 11 e 12 não estão todas livres. Libere ou troque alguma delas para montar o grupo.</div>`:"");
+  if(multi&&need){const ids=[...multi],cap=mesaCap(ids.join("+")||"x");
+    $("comboBox").innerHTML=`<div class="msg"><strong>Juntar mesas:</strong> toque nas mesas livres do mapa para juntar.<br>${ids.length?`Escolhidas: <strong>${ids.join(" + ")}</strong> = ${cap} lugares ${cap>=need.pessoas?"✓":`(faltam ${need.pessoas-cap})`}`:"Nenhuma escolhida ainda."}</div>
+      <div class="row" style="margin-top:8px"><button class="primary" data-multi="ok" ${ids.length<2||cap<need.pessoas?"disabled":""}>Confirmar junção</button><button data-multi="extra">${multi.has("extra")?"Tirar":"Somar"} mesa extra (+2)</button><button data-multi="cancel">Cancelar</button></div>`;}
+  else $("comboBox").innerHTML=(co.length?`<div class="lbl">Montagens livres para ${need.pessoas} pessoas:</div><div class="pills">${co.map(c=>`<button data-combo="${c.id}">${c.txt}</button>`).join("")}</div>`:(need&&need.pessoas>8?`<div class="msg bad">Nenhuma montagem padrão livre para ${need.pessoas} pessoas.</div>`:""))
+    +(need&&need.pessoas>4?`<div style="margin-top:8px"><button data-multi="start">Juntar outras mesas…</button></div>`:"");
   $("comboBox").hidden=!need;
+  if(multi)L.querySelectorAll(".tbl").forEach(g=>{if(multi.has(g.dataset.id))g.querySelector("rect").setAttribute("stroke","var(--sel)"),g.querySelector("rect").setAttribute("stroke-width","4");});
 }
 
 // ---------- ações ----------
-async function assign(mesa){
+async function assign(mesa){multi=null;
   const obj=picked.kind==="r"?R.find(r=>r.id===picked.id):W.find(w=>w.id===picked.id);const kind=picked.kind;picked=null;
   const ok=kind==="r"?await upd("reservas",obj.id,{mesa,vista:true}):await upd("fila",obj.id,{mesa,modo:"jantando"});
-  const nome=mesa.includes("+")?"montagem "+mesa.replace("+extra"," + mesa extra"):"mesa "+mesa;
+  const nome=mesa.includes("+")?"montagem "+mesa.replace("+extra"," + mesa extra").split("+").join(" + "):"mesa "+mesa;
   if(ok){toast(kind==="r"?`${obj.nome} → ${nome}. Agora toque em “Confirmar no WhatsApp”.`:`${obj.nome} → ${nome}`);load();}
 }
-$("comboBox").addEventListener("click",e=>{const b=e.target.closest("button[data-combo]");if(b&&picked)assign(b.dataset.combo);});
+$("comboBox").addEventListener("click",e=>{
+  const m=e.target.closest("button[data-multi]");
+  if(m&&picked){const a=m.dataset.multi;
+    if(a==="start")multi=new Set();
+    else if(a==="cancel")multi=null;
+    else if(a==="extra"){multi.has("extra")?multi.delete("extra"):multi.add("extra");}
+    else if(a==="ok"){const ids=[...multi].filter(x=>x!=="extra").concat(multi.has("extra")?["extra"]:[]);multi=null;assign(ids.join("+"));return;}
+    drawMap();return;}
+  const b=e.target.closest("button[data-combo]");if(b&&picked)assign(b.dataset.combo);});
 $("map").addEventListener("click",async e=>{
   const g=e.target.closest(".tbl");if(!g||!picked)return;const id=g.dataset.id,t=TABLES.find(t=>t.id===id);
+  if(multi){if(tableState(id)!=="livre"){toast(`Mesa ${id} já está em uso.`);return;}multi.has(id)?multi.delete(id):multi.add(id);drawMap();return;}
   const obj=picked.kind==="r"?R.find(r=>r.id===picked.id):W.find(w=>w.id===picked.id);
   if(tableState(id)!=="livre"){toast(`Mesa ${id} já está em uso.`);return;}
   if(t.seats<obj.pessoas){toast(`Mesa ${id} tem ${t.seats} lugares e o grupo tem ${obj.pessoas}. Escolha uma montagem acima do mapa.`);return;}
@@ -358,14 +373,14 @@ $("resList").addEventListener("click",async e=>{
   const b=e.target.closest("button[data-act]");
   if(!b){if(!r.vista&&r.origem==="link"){await upd("reservas",r.id,{vista:true});load();}return;}
   const a=b.dataset.act;
-  if(a==="pick"){picked={kind:"r",id:r.id};if(r.mesa)await upd("reservas",r.id,{mesa:null});await load();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
+  if(a==="pick"){multi=null;picked={kind:"r",id:r.id};if(r.mesa)await upd("reservas",r.id,{mesa:null});await load();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
   if(a==="edit"){openForm("r",r);return;}
   const patch={arrive:{status:"chegou",vista:true},cancel:{status:"cancelada",mesa:null},leave:{status:"saiu"}}[a];
   if(await upd("reservas",r.id,patch))load();
 });
 $("walkList").addEventListener("click",async e=>{
   const b=e.target.closest("button[data-act]");if(!b)return;const w=W.find(x=>x.id===e.target.closest("[data-w]").dataset.w);const a=b.dataset.act;
-  if(a==="pick"){picked={kind:"w",id:w.id};render();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
+  if(a==="pick"){multi=null;picked={kind:"w",id:w.id};render();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
   const patch=a==="dine"?{modo:"jantando"}:{modo:"saiu",mesa:null};
   if(await upd("fila",w.id,patch))load();
 });
