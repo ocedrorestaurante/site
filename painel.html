@@ -7,6 +7,7 @@
 <title>Painel · O Cedro</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="/app.css">
+<style>.sec{display:grid;gap:8px}.sec+.sec{margin-top:14px}.sec-h{font-family:var(--display);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);padding-bottom:4px}</style>
 </head>
 <body>
 <div class="wrap">
@@ -151,7 +152,7 @@ const TABLES=[
  {id:"25",area:"deck",seats:2,x:519,y:813,rot:48,shape:"s"},{id:"24",area:"deck",seats:2,x:566,y:865,rot:48,shape:"s"}];
 const BALCAO=[[713,541],[728,557],[743,573],[758,589],[773,605]];
 const SIZE={s:[24,24],q:[32,36],r:[30,46],l:[30,66]};
-const CAP={salao:68,deck:38}, LIMIT=51, MAX_GROUP=20, CUTOFF=20*60+20;
+const CAP={salao:68,deck:38}, LIMIT=51, MAX_GROUP=20, CUTOFF=20*60+30; // 20h30: reservas que não chegaram vão para "Não chegaram" (a gerente confirma)
 const TIMES=["19:00","19:15","19:30","19:45"];
 const NS="http://www.w3.org/2000/svg";
 
@@ -192,13 +193,14 @@ async function load(){
   render();
 }
 async function upd(table,id,patch){const {error}=await sb.from(table).update(patch).eq("id",id);if(error){toast("Não salvou: "+error.message);return false;}return true;}
+let lateWarned="";
+function isLate(r){const n=spNow();return r.status==="aguardando"&&(r.dia<n.day||(r.dia===n.day&&n.min>=CUTOFF));}
 async function cutoff(){
   const now=spNow();$("clockTxt").textContent=now.hhmm;
   if(gDay!==now.day||now.min<CUTOFF)return;
-  const late=R.filter(r=>r.status==="aguardando");
-  if(!late.length)return;
-  const {error}=await sb.from("reservas").update({status:"nao_veio",mesa:null}).eq("dia",gDay).eq("status","aguardando");
-  if(!error){toast(`20h20: ${late.length} reserva(s) não vieram. Mesas liberadas.`);load();}
+  const late=R.filter(isLate);
+  if(lateWarned!==gDay){lateWarned=gDay;if(late.length)toast(`20h30: ${late.length} reserva(s) não chegaram. Confirme na lista "Não chegaram" para liberar a mesa.`);}
+  render();
 }
 async function buildNights(){
   const offs=[-1,...Array(14).keys()], all=offs.map(spDate);
@@ -302,19 +304,31 @@ function render(){
   $("barFill").style.width=Math.min(100,sal/CAP.salao*100)+"%";
   $("kLink").innerHTML=sal<LIMIT?`<span class="status s-open">Aberto</span>`:sal>=CAP.salao?`<span class="status s-closed">Fechado · salão 100%</span>`:`<span class="status s-warn">Fechado · só WhatsApp</span>`;
   $("suggBox").innerHTML=suggestions().map(({w,t})=>`<div class="sugg"><p><strong>Mesa ${t.id}</strong> (${t.seats} lugares) livre → <strong>${esc(w.nome)}</strong>, ${w.pessoas} pessoa(s), no ${w.onde==="deck"?"deck":"balcão"} desde ${w.chegada}</p><button class="primary" data-w="${w.id}" data-t="${t.id}">Encaixar</button></div>`).join("");
-  const rs=R.slice().sort((a,b)=>(a.status==="nao_veio")-(b.status==="nao_veio")||a.horario.localeCompare(b.horario));
-  $("resList").innerHTML=rs.length?rs.map(r=>{
+  const byTime=(a,b)=>a.horario.localeCompare(b.horario);
+  const grpWait=R.filter(r=>r.status==="aguardando"&&!isLate(r)).sort(byTime);
+  const grpIn=R.filter(r=>r.status==="chegou"||r.status==="saiu").sort(byTime);
+  const grpLate=R.filter(r=>isLate(r)).sort(byTime);
+  const grpNo=R.filter(r=>r.status==="nao_veio").sort(byTime);
+  const card=r=>{
     const nf=NS_COUNT[r.telefone]||0;
-    const st={chegou:`<span class="status s-open">Chegou</span>`,nao_veio:`<span class="status s-closed">Não veio</span>`,saiu:`<span class="status">Saiu</span>`}[r.status]||`<span class="status s-warn">Aguardando</span>`;
+    const st={chegou:`<span class="status s-open">Chegou</span>`,nao_veio:`<span class="status s-closed">Não veio</span>`,saiu:`<span class="status">Saiu</span>`}[r.status]||(isLate(r)?`<span class="status s-closed">Não chegou</span>`:`<span class="status s-warn">Aguardando</span>`);
     return `<div class="item ${picked?.kind==="r"&&picked.id===r.id?"sel":""}" data-r="${r.id}">
       <span class="who">${esc(r.nome)}${!r.vista&&r.origem==="link"?` <span class="tag">nova</span>`:""}</span>${st}
       <span class="meta">${r.pessoas} pessoa(s) · ${r.horario} · ${r.area==="deck"?"Deck":"Salão"} · ${r.mesa?`<span class="tag">Mesa ${r.mesa.replace("+extra"," + extra")}</span>`:"sem mesa"} · ${r.origem==="link"?"pelo link":"WhatsApp"} · ${esc(r.telefone)} ${nf?`<span class="flag">${nf} falta(s) antes</span>`:""}${r.obs?`<br>${esc(r.obs)}`:""}</span>
-      ${r.status==="nao_veio"||r.status==="saiu"?"":`<span class="acts"><button data-act="pick">${r.mesa?"Trocar mesa":"Escolher mesa"}</button>${r.status==="aguardando"?`<button data-act="arrive">Chegou</button>`:""}<button data-act="edit">Editar</button>${r.status==="aguardando"?`<button data-act="cancel">Cancelar</button>`:""}${r.status==="chegou"?`<button data-act="leave">Liberar mesa</button>`:""}${r.mesa&&r.status==="aguardando"?confLink(r):""}${r.status==="aguardando"&&r.dia===spNow().day?remLink(r):""}</span>`}
-    </div>`;}).join(""):`<p class="hint">Nenhuma reserva nessa noite.</p>`;
-  $("walkList").innerHTML=W.length?W.map(w=>`<div class="item ${picked?.kind==="w"&&picked.id===w.id?"sel":""}" data-w="${w.id}">
+      ${r.status==="nao_veio"||r.status==="saiu"?"":`<span class="acts">${isLate(r)?`<button class="primary" data-act="noshow">Confirmar que não vem</button>`:""}<button data-act="pick">${r.mesa?"Trocar mesa":"Escolher mesa"}</button>${r.status==="aguardando"?`<button data-act="arrive">Chegou</button>`:""}<button data-act="edit">Editar</button>${r.status==="aguardando"?`<button data-act="cancel">Cancelar</button>`:""}${r.status==="chegou"?`<button data-act="leave">Liberar mesa</button>`:""}${r.mesa&&r.status==="aguardando"&&!isLate(r)?confLink(r):""}${r.status==="aguardando"&&r.dia===spNow().day&&!isLate(r)?remLink(r):""}</span>`}
+    </div>`;};
+  const sec=(t,cls,arr,extra)=>`<div class="sec"><div class="sec-h ${cls}">${t} <span class="tag">${arr.length}</span></div>${extra||""}${arr.length?arr.map(card).join(""):`<p class="hint" style="margin:0">Nenhuma.</p>`}</div>`;
+  $("resList").innerHTML=R.length?(
+    (grpLate.length?sec("Não chegaram · confirmar","s-closed",grpLate,`<p class="hint" style="margin:0 0 6px">Passou das 20h30. Toque em “Confirmar que não vem” para liberar a mesa, ou em “Chegou”.</p>`):"")
+    +sec("Aguardando","s-warn",grpWait)
+    +sec("Chegaram","s-open",grpIn)
+    +(grpNo.length?sec("Não vieram","",grpNo):"")
+  ):`<p class="hint">Nenhuma reserva nessa noite.</p>`;
+  const Ws=W.slice().sort((a,b)=>((a.modo==="esperando"&&!a.mesa)?0:1)-((b.modo==="esperando"&&!b.mesa)?0:1)||a.chegada.localeCompare(b.chegada));
+  $("walkList").innerHTML=W.length?Ws.map(w=>`<div class="item ${picked?.kind==="w"&&picked.id===w.id?"sel":""}" data-w="${w.id}">
       <span class="who">${esc(w.nome)}</span><span class="status ${w.modo==="esperando"?"s-warn":"s-open"}">${w.mesa?"Mesa "+w.mesa.replace("+extra"," + extra"):w.modo==="esperando"?"Esperando":"Jantando"}</span>
       <span class="meta">${w.pessoas} pessoa(s) · ${w.mesa?"no salão":w.onde==="deck"?"Deck":"Balcão"} · chegou ${w.chegada}</span>
-      <span class="acts">${w.mesa?"":`<button data-act="pick">Escolher mesa</button>`}${!w.mesa&&w.modo==="esperando"?`<button data-act="dine">Vai jantar aqui</button>`:""}<button data-act="leave">Saiu</button></span></div>`).join(""):`<p class="hint">Ninguém esperando.</p>`;
+      <span class="acts"><button data-act="pick">${w.mesa?"Trocar mesa":"Escolher mesa"}</button>${!w.mesa&&w.modo==="esperando"?`<button data-act="dine">Vai jantar aqui</button>`:""}<button data-act="leave">Saiu</button></span></div>`).join(""):`<p class="hint">Ninguém esperando.</p>`;
   $("evList").innerHTML=E.length?E.map(e=>`<div class="item" data-e="${e.id}" style="${e.contatado?"opacity:.55":""}"><span class="who">${esc(e.nome)}</span><span class="status ${e.contatado?"s-open":"s-warn"}">${e.contatado?"Contatado":"Falar com cliente"}</span>
     <span class="meta">${esc(e.tipo)} · ${e.pessoas} pessoas${e.data?` · ${e.data.split("-").reverse().join("/")}`:""} · ${esc(e.telefone)}${e.obs?`<br>${esc(e.obs)}`:""}</span>
     <span class="acts"><button data-act="done">${e.contatado?"Reabrir":"Marcar como contatado"}</button></span></div>`).join(""):`<p class="hint">Nenhum pedido de evento.</p>`;
@@ -373,14 +387,15 @@ $("resList").addEventListener("click",async e=>{
   const b=e.target.closest("button[data-act]");
   if(!b){if(!r.vista&&r.origem==="link"){await upd("reservas",r.id,{vista:true});load();}return;}
   const a=b.dataset.act;
-  if(a==="pick"){multi=null;picked={kind:"r",id:r.id};if(r.mesa)await upd("reservas",r.id,{mesa:null});await load();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
+  if(a==="pick"){multi=null;picked={kind:"r",id:r.id};render();$("map").scrollIntoView({behavior:"smooth",block:"center"});if(r.mesa)toast(`Escolha a nova mesa para ${r.nome}. A mesa ${r.mesa} só é liberada quando você escolher a nova.`);return;}
   if(a==="edit"){openForm("r",r);return;}
-  const patch={arrive:{status:"chegou",vista:true},cancel:{status:"cancelada",mesa:null},leave:{status:"saiu"}}[a];
+  const patch={arrive:{status:"chegou",vista:true},cancel:{status:"cancelada",mesa:null},leave:{status:"saiu"},noshow:{status:"nao_veio",mesa:null}}[a];
+  if(a==="noshow")toast(`${r.nome}: não veio. ${r.mesa?"Mesa "+r.mesa+" liberada.":""}`);
   if(await upd("reservas",r.id,patch))load();
 });
 $("walkList").addEventListener("click",async e=>{
   const b=e.target.closest("button[data-act]");if(!b)return;const w=W.find(x=>x.id===e.target.closest("[data-w]").dataset.w);const a=b.dataset.act;
-  if(a==="pick"){multi=null;picked={kind:"w",id:w.id};render();$("map").scrollIntoView({behavior:"smooth",block:"center"});return;}
+  if(a==="pick"){multi=null;picked={kind:"w",id:w.id};render();$("map").scrollIntoView({behavior:"smooth",block:"center"});if(w.mesa)toast(`Escolha a nova mesa para ${w.nome}. A mesa ${w.mesa} só é liberada quando você escolher a nova.`);return;}
   const patch=a==="dine"?{modo:"jantando"}:{modo:"saiu",mesa:null};
   if(await upd("fila",w.id,patch))load();
 });
