@@ -186,7 +186,7 @@ async function load(){
     sb.from("eventos").select("*").order("contatado").order("criado_em",{ascending:false}).limit(30)]);
   if(r.error){toast("Erro ao carregar reservas. Confira a internet.");return;}
   R=r.data;W=w.data||[];E=e.data||[];if(tab==="agenda")loadUp();
-  const phones=[...new Set(R.map(x=>x.telefone))];
+  const phones=[...new Set(R.map(x=>x.telefone).filter(t=>String(t||"").replace(/\D/g,"").length>=10))];
   NS_COUNT={};
   if(phones.length){const {data}=await sb.from("reservas").select("telefone,dia").eq("status","nao_veio").in("telefone",phones);
     (data||[]).forEach(x=>{if(x.dia!==gDay)NS_COUNT[x.telefone]=(NS_COUNT[x.telefone]||0)+1;});}
