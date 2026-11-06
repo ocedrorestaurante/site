@@ -56,11 +56,11 @@
         <div class="card form" id="newForm" hidden>
           <h2 id="nfTitle">Nova reserva</h2>
           <div class="row" id="nfDateRow"><label for="nfDate">Data<input id="nfDate" type="date"></label></div>
-          <div class="row"><label for="nfName">Nome<input id="nfName"></label><label for="nfPeople">Pessoas<input id="nfPeople" type="number" min="1" max="20" value="2"></label></div>
+          <div class="row"><label for="nfName">Nome<input id="nfName"></label><label for="nfPeople">Pessoas<input id="nfPeople" type="number" min="1" value="2"></label></div>
           <div class="row" id="nfResRow"><label for="nfTime">Chegada<select id="nfTime"></select></label><label for="nfPhone">WhatsApp<input id="nfPhone" inputmode="tel"></label></div>
           <label for="nfArea">Área<select id="nfArea"></select></label>
           <div id="nfObsRow"><label for="nfObs">Observação<input id="nfObs" placeholder="Aniversário, juntar mesas 19+20..."></label></div>
-          <label id="nfForceRow" style="display:flex;gap:8px;align-items:center;font-weight:400" hidden><input type="checkbox" id="nfForce" style="width:auto"> Reservar mesmo assim (vamos abrir nesse dia)</label>
+          <label id="nfForceRow" style="display:flex;gap:8px;align-items:center;font-weight:400" hidden><input type="checkbox" id="nfForce" style="width:auto"> <span id="nfForceTxt">Salvar mesmo assim</span></label>
           <div id="nfMsg"></div>
           <div class="row"><button class="primary" id="nfSave">Salvar</button><button id="nfCancel">Cancelar</button></div>
         </div>
@@ -152,7 +152,7 @@ const TABLES=[
  {id:"25",area:"deck",seats:2,x:519,y:813,rot:48,shape:"s"},{id:"24",area:"deck",seats:2,x:566,y:865,rot:48,shape:"s"}];
 const BALCAO=[[713,541],[728,557],[743,573],[758,589],[773,605]];
 const SIZE={s:[24,24],q:[32,36],r:[30,46],l:[30,66]};
-const CAP={salao:68,deck:38}, LIMIT=51, MAX_GROUP=20, CUTOFF=20*60+30; // 20h30: reservas que não chegaram vão para "Não chegaram" (a gerente confirma)
+const CAP={salao:68,deck:38}, LIMIT=51, CUTOFF=20*60+30; // 20h30: reservas que não chegaram vão para "Não chegaram" (a gerente confirma)
 const TIMES=["19:00","19:15","19:30","19:45"];
 const NS="http://www.w3.org/2000/svg";
 
@@ -423,16 +423,17 @@ $("nfSave").onclick=async()=>{
     const dia=$("nfDate").value;
     if(!dia)return bad("Escolha a data.");
     if(dia<spDate(0)&&!(editing&&dia===editing.dia))return bad("Essa data já passou.");
-    if(pessoas>MAX_GROUP)return bad(`O máximo da casa é ${MAX_GROUP} pessoas (10 + 11 + 12 juntas).`);
     const {data:ab}=await sb.rpc("dias_abertos",{p_de:dia,p_ate:dia});
-    if(ab&&!ab.length&&!$("nfForce").checked){$("nfForceRow").hidden=false;return bad(`${fmtDia(dia)} está marcado como fechado. Se for abrir, marque a caixa abaixo ou abra o dia em "Dias de funcionamento".`);}
+    const warns=[];
+    if(ab&&!ab.length)warns.push(`${fmtDia(dia)} está marcado como fechado.`);
     let q=sb.from("reservas").select("area,pessoas,status").eq("dia",dia).in("status",["aguardando","chegou","saiu"]);
     if(editing)q=q.neq("id",editing.id);
     const {data:rows}=await q;
     const sum=a=>(rows||[]).filter(r=>r.area===a).reduce((s,r)=>s+r.pessoas,0), sal=sum("salao"), dk=sum("deck");
-    if(area==="salao"&&sal+pessoas>CAP.salao)return bad(`Passa de 100% do salão (já tem ${sal} de ${CAP.salao} lugares nesse dia).`);
-    if(area==="deck"&&sal>=CAP.salao)return bad("Salão lotado nesse dia: o deck fica para quem chega sem reserva.");
-    if(area==="deck"&&dk+pessoas>CAP.deck)return bad("Deck cheio nesse dia.");
+    if(area==="salao"&&sal+pessoas>CAP.salao)warns.push(`Passa da capacidade do salão (já tem ${sal} de ${CAP.salao} lugares reservados nesse dia).`);
+    if(area==="deck"&&sal>=CAP.salao)warns.push("O salão está lotado nesse dia, e o deck costuma ficar para quem chega sem reserva.");
+    if(area==="deck"&&dk+pessoas>CAP.deck)warns.push(`Passa da capacidade do deck (já tem ${dk} de ${CAP.deck} lugares reservados nesse dia).`);
+    if(warns.length&&!$("nfForce").checked){$("nfForceRow").hidden=false;return bad(warns.join("<br>")+"<br>Se estiver tudo certo, marque “Salvar mesmo assim” e salve de novo.");}
     const rec={dia,nome,pessoas,horario:$("nfTime").value,area,telefone:$("nfPhone").value.trim()||"—",obs:$("nfObs").value.trim()||null};
     if(editing){
       if(editing.mesa&&(dia!==editing.dia||area!==editing.area||pessoas>mesaCap(editing.mesa))){rec.mesa=null;rec.confirmada=false;}
